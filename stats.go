@@ -2,21 +2,18 @@ package gostats
 
 import (
 	"fmt"
-	"github.com/quipo/statsd"
 	"sync"
-)
 
-// Logger interface
-type Logger interface {
-	Error(m string)
-}
+	"github.com/chapsuk/golog"
+	"github.com/quipo/statsd"
+)
 
 // Statsd metrics writer
 type Statsd struct {
 	cli    *statsd.StatsdClient
 	ch     chan *event
 	dn     chan bool
-	logger Logger
+	logger golog.StandartLogger
 	active bool
 	mu     sync.Mutex
 }
@@ -44,7 +41,7 @@ func NewStatsd(address, p string) (*Statsd, error) {
 }
 
 // SetLogger set logger
-func (s *Statsd) SetLogger(l Logger) {
+func (s *Statsd) SetLogger(l golog.StandartLogger) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.logger = l
@@ -81,7 +78,7 @@ func (s *Statsd) Continue() {
 
 func (s *Statsd) log(e error) {
 	if s.logger != nil {
-		s.logger.Error(e.Error())
+		s.logger.Print(e)
 	}
 }
 
