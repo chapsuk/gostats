@@ -40,6 +40,14 @@ func NewStatsd(address, p string) (*Statsd, error) {
 	return s, nil
 }
 
+// Close channels
+func (s *Statsd) Close() {
+	s.dn <- true
+	close(s.ch)
+	close(s.dn)
+	s.active = false
+}
+
 // SetLogger set logger
 func (s *Statsd) SetLogger(l golog.StandartLogger) {
 	s.mu.Lock()
