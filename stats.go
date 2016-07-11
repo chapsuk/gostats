@@ -11,16 +11,23 @@ import (
 // Statsd metrics writer
 type Statsd struct {
 	cli    *statsd.StatsdClient
-	ch     chan *event
-	dn     chan bool
+	tch    chan *timingEvent
+	tdn    chan bool
+	cch    chan *countEvent
+	cdn    chan bool
 	logger golog.StandartLogger
 	active bool
 	mu     sync.Mutex
 }
 
-type event struct {
+type timingEvent struct {
 	key  string
 	time int // milliseconds
+}
+
+type countEvent struct {
+	key   string
+	count int
 }
 
 // NewStatsd create statsd statistic writer
@@ -31,20 +38,26 @@ func NewStatsd(address, p string) (*Statsd, error) {
 		return nil, err
 	}
 	s := &Statsd{
-		ch:     make(chan *event),
-		dn:     make(chan bool),
+		tch:    make(chan *timingEvent),
+		tdn:    make(chan bool),
+		cch:    make(chan *countEvent),
+		cdn:    make(chan bool),
 		cli:    c,
 		active: true,
 	}
-	go s.collect()
+	go s.collectTimings()
+	go s.collectCounters()
 	return s, nil
 }
 
 // Close channels
 func (s *Statsd) Close() {
-	s.dn <- true
-	close(s.ch)
-	close(s.dn)
+	s.tdn <- true
+	s.cdn <- true
+	close(s.tch)
+	close(s.tdn)
+	close(s.cch)
+	close(s.cdn)
 	s.active = false
 }
 
@@ -55,12 +68,21 @@ func (s *Statsd) SetLogger(l golog.StandartLogger) {
 	s.logger = l
 }
 
-// Write stats key, t is milliseconds
-func (s *Statsd) Write(k string, t int) {
+// WriteTiming write timing for key
+func (s *Statsd) WriteTiming(k string, t int) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.active {
-		s.ch <- &event{key: k, time: t}
+		s.tch <- &timingEvent{key: k, time: t}
+	}
+}
+
+// WriteCounter write counter metric with key
+func (s *Statsd) WriteCounter(k string, c int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.active {
+		s.cch <- &countEvent{key: k, count: c}
 	}
 }
 
@@ -69,7 +91,8 @@ func (s *Statsd) Stop() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.active {
-		s.dn <- true
+		s.cdn <- true
+		s.cdn <- true
 		s.active = false
 	}
 }
@@ -79,30 +102,43 @@ func (s *Statsd) Continue() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if !s.active {
-		go s.collect()
+		go s.collectTimings()
+		go s.collectCounters()
 		s.active = true
 	}
 }
 
-func (s *Statsd) log(e error) {
+func (s *Statsd) log(m interface{}) {
 	if s.logger != nil {
-		s.logger.Print(e)
+		s.logger.Print(m)
 	}
 }
 
-func (s *Statsd) collect() {
+func (s *Statsd) collectTimings() {
 	for {
 		select {
-		case e := <-s.ch:
+		case e := <-s.tch:
 			err := s.cli.Timing(fmt.Sprintf(".%s.time", e.key), int64(e.time))
 			if err != nil {
 				s.log(err)
 			}
-			err = s.cli.Incr(fmt.Sprintf(".%s.count", e.key), 1)
+		case <-s.tdn:
+			s.log("stop collect timings")
+			return
+		}
+	}
+}
+
+func (s *Statsd) collectCounters() {
+	for {
+		select {
+		case e := <-s.cch:
+			err := s.cli.Incr(fmt.Sprintf(".%s.count", e.key), int64(e.count))
 			if err != nil {
 				s.log(err)
 			}
-		case <-s.dn:
+		case <-s.cdn:
+			s.log("stop collect counters")
 			return
 		}
 	}
