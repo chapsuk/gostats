@@ -2,18 +2,37 @@ version: '2'
 
 services:
 
+  example:
+    build:
+      context: .
+      dockerfile: example/Dockerfile.example
+    image: chapsuk/gostats-example
+    command: -host statsd -i 1000000 -s 1 -b -1 -c -1
+    networks:
+      - gostats-back-tier
+
   graphite:
     image: hopsoft/graphite-statsd
-    ports:
-      - "8080:80" # nginx
-      - "2003-2004:2003-2004" # carbon & carbon aggregator
-      - "2023-2024:2023-2024" # carbon pickle & carbon aggregator pickle
-      - "8125:8125/udp" # statsd
-      - "8126:8126" # statsd admin 
-  
+    # ports:
+    #   - "8080:80" # nginx
+    #   - "2003-2004:2003-2004" # carbon & carbon aggregator
+    #   - "2023-2024:2023-2024" # carbon pickle & carbon aggregator pickle
+    #   - "8125:8125/udp" # statsd
+    #   - "8126:8126" # statsd admin 
+    networks:
+      gostats-back-tier:
+        aliases:
+          - statsd
+
   grafana:
     image: grafana/grafana:2.5.0
     ports:
-      - "3000:3000"
+      - "13000:3000"
     environment:
-        GF_SECURITY_ADMIN_PASSWORD: "admin"
+      GF_SECURITY_ADMIN_PASSWORD: "admin"
+    networks:
+      - gostats-back-tier
+
+networks:
+  gostats-back-tier:
+    driver: bridge

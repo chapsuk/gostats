@@ -1,0 +1,15 @@
+FROM alpine:3.4
+
+ADD . /go/src/github.com/chapsuk/gostats/
+    
+RUN \
+    apk update \
+    && apk add ca-certificates \
+    && apk add go \
+    && export GOPATH=/go \
+    && export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH \
+    && go build -o /app $GOPATH/src/github.com/chapsuk/gostats/example/main.go \
+    # cleanup
+    && rm -rf /go /usr/local/go /usr/lib/go
+
+ENTRYPOINT ["/app"]
