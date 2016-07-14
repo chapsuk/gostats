@@ -92,7 +92,7 @@ func (s *Statsd) Stop() {
 	defer s.mu.Unlock()
 	if s.active {
 		s.cdn <- true
-		s.cdn <- true
+		s.tdn <- true
 		s.active = false
 	}
 }
