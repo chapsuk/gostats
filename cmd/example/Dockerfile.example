@@ -5,15 +5,15 @@ ADD . /go/src/github.com/chapsuk/gostats/
 RUN \
     apk update \
     && apk add ca-certificates \
-    && apk add go \
+    && apk add go git \
     && export GOPATH=/go \
     && export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH \
     # install dependencies
     && go get github.com/Masterminds/glide \
-    && cd /go/src/github.com/chapsuk/gostats/example \
+    && cd /go/src/github.com/chapsuk/gostats/cmd/example \
     && glide install \
     # build app
-    && go build -o /app $GOPATH/src/github.com/chapsuk/gostats/example/main.go \
+    && go build -o /app $GOPATH/src/github.com/chapsuk/gostats/cmd/example/main.go \
     # cleanup
     && rm -rf /go /usr/local/go /usr/lib/go
 

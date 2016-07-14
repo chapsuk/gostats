@@ -5,7 +5,7 @@ services:
   example:
     build:
       context: .
-      dockerfile: example/Dockerfile.example
+      dockerfile: cmd/example/Dockerfile.example
     image: chapsuk/gostats-example
     command: -host statsd -i 1000000 -s 1 -b -1 -c -1
     networks:
