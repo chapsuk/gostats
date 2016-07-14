@@ -8,6 +8,11 @@ RUN \
     && apk add go \
     && export GOPATH=/go \
     && export PATH=$GOPATH/bin:/usr/local/go/bin:$PATH \
+    # install dependencies
+    && go get github.com/Masterminds/glide \
+    && cd /go/src/github.com/chapsuk/gostats/example \
+    && glide install \
+    # build app
     && go build -o /app $GOPATH/src/github.com/chapsuk/gostats/example/main.go \
     # cleanup
     && rm -rf /go /usr/local/go /usr/lib/go

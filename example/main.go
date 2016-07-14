@@ -24,6 +24,9 @@ func main() {
 		return
 	}
 	log.Print("Start write metrics.")
+	stat.SetErrorHandler(func(err error) {
+		log.Print(err)
+	})
 
 	dch := make(chan bool)
 	tchan := time.NewTicker(1 * time.Second).C

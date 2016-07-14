@@ -1,3 +1,0 @@
-package: github.com/chapsuk/gostats/examples
-import:
-- package: github.com/chapsuk/gostats

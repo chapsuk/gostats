@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/chapsuk/golog"
 	"github.com/quipo/statsd"
 )
+
+// ErrorHandler is error handler function
+type ErrorHandler func(err error)
 
 // Statsd metrics writer
 type Statsd struct {
@@ -15,9 +17,9 @@ type Statsd struct {
 	tdn    chan bool
 	cch    chan *countEvent
 	cdn    chan bool
-	logger golog.StandartLogger
 	active bool
 	mu     sync.Mutex
+	eh     ErrorHandler
 }
 
 type timingEvent struct {
@@ -50,6 +52,13 @@ func NewStatsd(address, p string) (*Statsd, error) {
 	return s, nil
 }
 
+// SetErrorHandler set error handler function
+func (s *Statsd) SetErrorHandler(f ErrorHandler) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.eh = f
+}
+
 // Close channels
 func (s *Statsd) Close() {
 	s.tdn <- true
@@ -59,13 +68,6 @@ func (s *Statsd) Close() {
 	close(s.cch)
 	close(s.cdn)
 	s.active = false
-}
-
-// SetLogger set logger
-func (s *Statsd) SetLogger(l golog.StandartLogger) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.logger = l
 }
 
 // WriteTiming write timing for key
@@ -108,9 +110,9 @@ func (s *Statsd) Continue() {
 	}
 }
 
-func (s *Statsd) log(m interface{}) {
-	if s.logger != nil {
-		s.logger.Print(m)
+func (s *Statsd) log(e error) {
+	if s.eh != nil {
+		s.eh(e)
 	}
 }
 
@@ -123,7 +125,7 @@ func (s *Statsd) collectTimings() {
 				s.log(err)
 			}
 		case <-s.tdn:
-			s.log("stop collect timings")
+			s.eh(fmt.Errorf("stop collect timings"))
 			return
 		}
 	}
@@ -138,7 +140,7 @@ func (s *Statsd) collectCounters() {
 				s.log(err)
 			}
 		case <-s.cdn:
-			s.log("stop collect counters")
+			s.eh(fmt.Errorf("stop collect counters"))
 			return
 		}
 	}
