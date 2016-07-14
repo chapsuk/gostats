@@ -1,0 +1,10 @@
+hash: 4bc0e6cf494e09f6eb42c0f7fae2bbab36fd4d301af2a4986f8dde71926250c2
+updated: 2016-07-14T13:05:10.162180783+03:00
+imports:
+- name: github.com/chapsuk/gostats
+  version: 134c9daa06384f531a5db289a834770f5c119f3b
+- name: github.com/quipo/statsd
+  version: 494c2067718d0c58116be15337f466e393273617
+  subpackages:
+  - event
+devImports: []
